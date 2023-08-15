@@ -26,7 +26,8 @@ config :demo, DemoWeb.Endpoint,
   secret_key_base: "hoIjf/Pr0jR58Svt1P8qTyyVJkI0klBkKX8cAYdIPLyxAqxMrS1rMdvCb1wkJYX+",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]},
+    storybook_tailwind: {Tailwind, :install_and_run, [:storybook, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -58,7 +59,8 @@ config :demo, DemoWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/demo_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/demo_web/(controllers|live|components)/.*(ex|heex)$",
+      ~r"storybook/.*(exs|md)$"
     ]
   ]
 

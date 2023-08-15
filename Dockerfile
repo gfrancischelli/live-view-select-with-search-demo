@@ -51,6 +51,8 @@ COPY lib lib
 
 COPY assets assets
 
+COPY storybook storybook
+
 # compile assets
 RUN mix assets.deploy
 

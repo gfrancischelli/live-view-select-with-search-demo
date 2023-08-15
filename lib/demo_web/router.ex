@@ -1,6 +1,8 @@
 defmodule DemoWeb.Router do
   use DemoWeb, :router
 
+  import PhoenixStorybook.Router
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -14,10 +16,15 @@ defmodule DemoWeb.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/" do
+    storybook_assets()
+  end
+
   scope "/", DemoWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    live_storybook("/storybook", backend_module: DemoWeb.Storybook)
   end
 
   # Other scopes may use custom stacks.
