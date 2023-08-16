@@ -12,6 +12,9 @@ module.exports = {
     "../lib/*_web/**/*.*ex"
   ],
   theme: {
+    data: {
+      open: 'ui~="open"',
+    },
     extend: {
       colors: {
         brand: "#FD4F00",

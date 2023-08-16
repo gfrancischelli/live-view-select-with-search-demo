@@ -19,28 +19,43 @@ defmodule DemoWeb.CoreComponents do
   alias Phoenix.LiveView.JS
   import DemoWeb.Gettext
 
+  attr :id, :string, required: true
   attr :errors, :list, default: []
   slot :inner_block
   slot :expanded
 
   def dropdown(assigns) do
     ~H"""
-    <div
-      tabindex="0"
-      aria-role="button"
-      class={[
-        "py-2 px-4 outline-0",
-        "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-        "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-        @errors == [] && "border-zinc-300 focus:border-zinc-400",
-        @errors != [] && "border-rose-400 focus:border-rose-400"
-      ]}
-    >
-      <%= render_slot(@inner_block) %>
-      <%= render_slot(@expanded) %>
+    <div phx-click-away={close_dropdown(@id)}>
+      <div
+        id={@id}
+        phx-click={open_dropdown(@id)}
+        tabindex="0"
+        aria-role="button"
+        class={[
+          "peer",
+          "py-2 px-4 outline-0 cursor-pointer data-[ui-open]:cursor-default",
+          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
+          "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
+          @errors == [] && "border-zinc-300 focus:border-zinc-400",
+          @errors != [] && "border-rose-400 focus:border-rose-400",
+        ]}
+      >
+        <%= render_slot(@inner_block) %>
+      </div>
+
+      <div class={["hidden peer-data-[ui-open]:block"]}>
+        <%= render_slot(@expanded) %>
+      </div>
     </div>
     """
   end
+
+  defp open_dropdown(id), do:
+    JS.set_attribute({"data-ui-open", "true"}, to: "##{id}")
+
+  defp close_dropdown(id), do:
+    JS.remove_attribute("data-ui-open", to: "##{id}")
 
   @doc """
   Renders a modal.

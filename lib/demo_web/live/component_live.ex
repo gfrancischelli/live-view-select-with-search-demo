@@ -4,7 +4,7 @@ defmodule DemoWeb.ComponentLive do
 
   def render(%{live_action: :dropdown} = assigns) do
     ~H"""
-    <.dropdown>
+    <.dropdown id="my-dropdown">
       Click to expand
       <:expanded>
         I'm expanded hoooray
