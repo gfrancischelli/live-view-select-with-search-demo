@@ -26,7 +26,14 @@ defmodule DemoWeb.CoreComponents do
 
   def dropdown(assigns) do
     ~H"""
-    <div tabindex="0" class="group relative outline-0" phx-click-away={close_dropdown(@id)}>
+    <div
+      tabindex="0"
+      class="group relative outline-0"
+      phx-key="Enter"
+      phx-keydown={open_dropdown(@id)}
+      phx-click-away={close_dropdown(@id)}
+      phx-blur={close_dropdown(@id)}
+    >
       <div
         id={@id}
         phx-click={open_dropdown(@id)}
@@ -37,7 +44,8 @@ defmodule DemoWeb.CoreComponents do
           "py-2 px-4 outline-0 cursor-pointer data-[ui-open]:cursor-default",
           "mt-2 block w-full rounded-lg text-zinc-900 group-focus:ring-0 sm:text-sm sm:leading-6",
           "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          @errors == [] && "border-zinc-300 group-focus:border-zinc-400 data-[ui-open]:border-b-zinc-200",
+          @errors == [] &&
+            "border-zinc-300 group-focus:border-zinc-400 data-[ui-open]:border-b-zinc-200",
           @errors != [] && "border-rose-400 group-focus:border-rose-400"
         ]}
       >
