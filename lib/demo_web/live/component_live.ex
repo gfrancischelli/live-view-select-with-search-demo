@@ -2,6 +2,8 @@ defmodule DemoWeb.ComponentLive do
   use DemoWeb, :live_view
   import DemoWeb.CoreComponents
 
+  import DemoWeb.Components.SearchSelect
+
   def render(%{live_action: :dropdown} = assigns) do
     ~H"""
     <.dropdown id="my-dropdown">
@@ -21,9 +23,11 @@ defmodule DemoWeb.ComponentLive do
     """
   end
 
-  def render(assigns) do
+  def render(%{live_action: :searchselect} = assigns) do
     ~H"""
-    <%= inspect(assigns, pretty: true) %>
+    <.simple_form :let={f} for={%{}} as={:story} class="w-full">
+      <.search_select field={f[:field]} options={[1, 2, 3]}/>
+    </.simple_form>
     """
   end
 end

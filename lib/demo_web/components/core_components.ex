@@ -21,12 +21,14 @@ defmodule DemoWeb.CoreComponents do
 
   attr :id, :string, required: true
   attr :errors, :list, default: []
-  slot :inner_block
-  slot :expanded
+  slot :inner_block, doc: "Markup to display in the always visible block. Hidden when dropdown is closed and :closed slot is used"
+  slot :expanded, doc: "Markup to display in the expanded section when dropdown is open"
+  slot :closed, doc: "Alternative markup to display in the always visible block when closed"
 
   def dropdown(assigns) do
     ~H"""
     <div
+      id={@id}
       tabindex="0"
       class="group relative outline-0"
       phx-key="Enter"
@@ -35,25 +37,29 @@ defmodule DemoWeb.CoreComponents do
       phx-blur={close_dropdown(@id)}
     >
       <div
-        id={@id}
         phx-click={open_dropdown(@id)}
         aria-role="button"
         class={[
-          "peer",
-          "data-[ui-open]:rounded-b-none",
-          "py-2 px-4 outline-0 cursor-pointer data-[ui-open]:cursor-default",
+          "group-data-[ui-open]:rounded-b-none",
+          "py-2 px-4 outline-0 cursor-pointer group-data-[ui-open]:cursor-default",
           "mt-2 block w-full rounded-lg text-zinc-900 group-focus:ring-0 sm:text-sm sm:leading-6",
           "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
           @errors == [] &&
-            "border-zinc-300 group-focus:border-zinc-400 data-[ui-open]:border-b-zinc-200",
+            "border-zinc-300 group-focus:border-zinc-400 group-data-[ui-open]:border-zinc-400 group-data-[ui-open]:border-b-zinc-200",
           @errors != [] && "border-rose-400 group-focus:border-rose-400"
         ]}
       >
-        <%= render_slot(@inner_block) %>
+        <div class={@closed && "group-data-[ui-open]:block hidden"}>
+          <%= render_slot(@inner_block) %>
+        </div>
+
+        <div class="group-data-[ui-open]:hidden">
+          <%= render_slot(@closed) %>
+        </div>
       </div>
 
       <div class={[
-        "hidden peer-data-[ui-open]:block",
+        "hidden group-data-[ui-open]:block",
         "py-2 px-4 absolute bg-white",
         "rounded-t-none border-t-0",
         "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",

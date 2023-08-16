@@ -25,6 +25,7 @@ defmodule DemoWeb.Router do
 
     get "/", PageController, :home
     live "/dropdown", ComponentLive, :dropdown
+    live "/searchselect", ComponentLive, :searchselect
     live_storybook("/storybook", backend_module: DemoWeb.Storybook)
   end
 
