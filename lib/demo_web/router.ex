@@ -24,6 +24,7 @@ defmodule DemoWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/dropdown", ComponentLive, :dropdown
     live_storybook("/storybook", backend_module: DemoWeb.Storybook)
   end
 
