@@ -26,36 +26,41 @@ defmodule DemoWeb.CoreComponents do
 
   def dropdown(assigns) do
     ~H"""
-    <div phx-click-away={close_dropdown(@id)}>
+    <div tabindex="0" class="group relative outline-0" phx-click-away={close_dropdown(@id)}>
       <div
         id={@id}
         phx-click={open_dropdown(@id)}
-        tabindex="0"
         aria-role="button"
         class={[
           "peer",
+          "data-[ui-open]:rounded-b-none",
           "py-2 px-4 outline-0 cursor-pointer data-[ui-open]:cursor-default",
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
+          "mt-2 block w-full rounded-lg text-zinc-900 group-focus:ring-0 sm:text-sm sm:leading-6",
           "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400",
+          @errors == [] && "border-zinc-300 group-focus:border-zinc-400 data-[ui-open]:border-b-zinc-200",
+          @errors != [] && "border-rose-400 group-focus:border-rose-400"
         ]}
       >
         <%= render_slot(@inner_block) %>
       </div>
 
-      <div class={["hidden peer-data-[ui-open]:block"]}>
+      <div class={[
+        "hidden peer-data-[ui-open]:block",
+        "py-2 px-4 absolute bg-white",
+        "rounded-t-none border-t-0",
+        "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
+        "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
+        @errors == [] && "border-zinc-300 border-zinc-400"
+      ]}>
         <%= render_slot(@expanded) %>
       </div>
     </div>
     """
   end
 
-  defp open_dropdown(id), do:
-    JS.set_attribute({"data-ui-open", "true"}, to: "##{id}")
+  defp open_dropdown(id), do: JS.set_attribute({"data-ui-open", "true"}, to: "##{id}")
 
-  defp close_dropdown(id), do:
-    JS.remove_attribute("data-ui-open", to: "##{id}")
+  defp close_dropdown(id), do: JS.remove_attribute("data-ui-open", to: "##{id}")
 
   @doc """
   Renders a modal.

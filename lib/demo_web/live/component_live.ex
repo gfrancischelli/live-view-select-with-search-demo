@@ -8,6 +8,10 @@ defmodule DemoWeb.ComponentLive do
       Click to expand
       <:expanded>
         I'm expanded hoooray
+        <ul class="list-disc list-inside">
+         <li>Thanks to slots</li>
+         <li>Rich html works 🚀</li>
+        </ul>
       </:expanded>
     </.dropdown>
 
