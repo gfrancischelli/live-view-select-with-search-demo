@@ -21,7 +21,13 @@ defmodule DemoWeb.CoreComponents do
 
   attr :id, :string, required: true
   attr :errors, :list, default: []
-  slot :inner_block, doc: "Markup to display in the always visible block. Hidden when dropdown is closed and :closed slot is used"
+  attr :on_open, :any, default: &Function.identity/1, doc: "JS command to execute after opening"
+  attr :rest, :global
+
+  slot :inner_block,
+    doc:
+      "Markup to display in the always visible block. Hidden when dropdown is closed and :closed slot is used"
+
   slot :expanded, doc: "Markup to display in the expanded section when dropdown is open"
   slot :closed, doc: "Alternative markup to display in the always visible block when closed"
 
@@ -32,12 +38,12 @@ defmodule DemoWeb.CoreComponents do
       tabindex="0"
       class="group relative outline-0"
       phx-key="Enter"
-      phx-keydown={open_dropdown(@id)}
+      phx-keydown={open_dropdown(@on_open, @id)}
       phx-click-away={close_dropdown(@id)}
-      phx-blur={close_dropdown(@id)}
+      phx-blur={Map.get(@rest, :"phx-blur", close_dropdown(@id))}
     >
       <div
-        phx-click={open_dropdown(@id)}
+        phx-click={open_dropdown(@on_open, @id)}
         aria-role="button"
         class={[
           "group-data-[ui-open]:rounded-b-none",
@@ -72,9 +78,11 @@ defmodule DemoWeb.CoreComponents do
     """
   end
 
-  defp open_dropdown(id), do: JS.set_attribute({"data-ui-open", "true"}, to: "##{id}")
+  def open_dropdown(%JS{} = js, id) do
+    JS.set_attribute(js, {"data-ui-open", "true"}, to: "##{id}")
+  end
 
-  defp close_dropdown(id), do: JS.remove_attribute("data-ui-open", to: "##{id}")
+  def close_dropdown(id), do: JS.remove_attribute("data-ui-open", to: "##{id}")
 
   @doc """
   Renders a modal.
