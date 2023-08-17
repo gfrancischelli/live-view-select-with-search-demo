@@ -24,9 +24,13 @@ defmodule DemoWeb.ComponentLive do
   end
 
   def render(%{live_action: :searchselect} = assigns) do
+    assigns = assign(assigns, :form, to_form(%{"artist" => "Charlie Brown Jr"}))
     ~H"""
-    <.simple_form :let={f} for={%{}} as={:story} class="w-full">
-      <.search_select field={f[:field]} options={[1, 2, 3]}/>
+    <.header>Art Form</.header>
+
+    <.simple_form for={@form} class="w-full">
+      <.search_select field={@form[:movie]} placeholder="Select your favorite movie 🎬"/>
+      <.search_select field={@form[:artist]} placeholder="Select your favorite music artist 🎸"/>
     </.simple_form>
     """
   end

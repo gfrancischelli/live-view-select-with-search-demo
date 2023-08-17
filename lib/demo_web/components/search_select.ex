@@ -4,6 +4,11 @@ defmodule DemoWeb.Components.SearchSelect do
 
   alias Phoenix.LiveView.JS
 
+  attr :placeholder, :string, default: "Select"
+
+  attr :field, Phoenix.HTML.FormField,
+    doc: "a form field struct retrieved from the form, for example: @form[:email]"
+
   def search_select(assigns) do
     assigns =
       assigns
@@ -22,7 +27,13 @@ defmodule DemoWeb.Components.SearchSelect do
     <div id={@id} phx-feedback-for={@name}>
       <.label><%= @label %></.label>
       <.dropdown id={@dd_id} on_open={focus_search_input(@id)} phx-blur={nil}>
-        <:closed>Please select</:closed>
+        <:closed>
+          <%= if value_empty?(@field.value) do %>
+            <span class="text-zinc-600"><%= @placeholder %></span>
+          <% else %>
+            <%= @field.value %>
+          <% end %>
+        </:closed>
 
         <input
           class={["search outline-0 w-full text-zinc-900 sm:text-sm sm:leading-6"]}
@@ -39,5 +50,9 @@ defmodule DemoWeb.Components.SearchSelect do
 
   def focus_search_input(id) do
     JS.focus(to: "##{id} input.search")
+  end
+
+  defp value_empty?(value) do
+    value == "" or value == nil
   end
 end
