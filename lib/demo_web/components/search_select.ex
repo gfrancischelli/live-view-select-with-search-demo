@@ -61,6 +61,7 @@ defmodule DemoWeb.Components.SearchSelect do
             phx-target={@myself}
             phx-debounce={@search_debounce}
             name="search"
+            id={@id <> "search"}
             autocomplete="off"
             placeholder={@field.value || @placeholder}
             value={@search}
@@ -106,7 +107,10 @@ defmodule DemoWeb.Components.SearchSelect do
   end
 
   def focus_search_input(id) do
-    JS.focus(to: "##{id} input[name='search']")
+    input_selector = "##{id} input[name='search']"
+
+    JS.dispatch("clear-search", to: input_selector)
+    |> JS.focus(to: input_selector)
   end
 
   @impl true
