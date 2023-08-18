@@ -28,7 +28,10 @@ defmodule DemoWeb.CoreComponents do
     doc:
       "Markup to display in the always visible block. Hidden when dropdown is closed and :closed slot is used"
 
-  slot :expanded, doc: "Markup to display in the expanded section when dropdown is open"
+  slot :expanded, doc: "Markup to display in the expanded section when dropdown is open" do
+    attr :class, :string
+  end
+
   slot :closed, doc: "Alternative markup to display in the always visible block when closed"
 
   def dropdown(assigns) do
@@ -39,7 +42,6 @@ defmodule DemoWeb.CoreComponents do
       class="group relative outline-0"
       phx-key="Enter"
       phx-keydown={open_dropdown(@on_open, @id)}
-      phx-click-away={close_dropdown(@id)}
       phx-blur={Map.get(@rest, :"phx-blur", close_dropdown(@id))}
     >
       <div
@@ -64,15 +66,16 @@ defmodule DemoWeb.CoreComponents do
         </div>
       </div>
 
-      <div class={[
+      <div :for={expanded <- @expanded} class={[
         "hidden group-data-[ui-open]:block",
-        "py-2 px-4 absolute bg-white",
+        "py-2 px-4 absolute bg-white z-10",
         "rounded-t-none border-t-0",
         "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
         "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
-        @errors == [] && "border-zinc-300 border-zinc-400"
+        @errors == [] && "border-zinc-300 border-zinc-400",
+        expanded.class
       ]}>
-        <%= render_slot(@expanded) %>
+        <%= render_slot(expanded) %>
       </div>
     </div>
     """
