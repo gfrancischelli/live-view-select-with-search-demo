@@ -656,6 +656,17 @@ defmodule DemoWeb.CoreComponents do
     """
   end
 
+  attr :msg, :string, default: "No data"
+
+  def empty_state(assigns) do
+    ~H"""
+      <div class="text-slate-400 text-sm p-2 gap-y-2 flex flex-col items-center" >
+        <.icon name="hero-inbox-mini" class="w-8 h-8 bg-slate-300 block" />
+        <%= @msg %>
+      </div>
+    """
+  end
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do
