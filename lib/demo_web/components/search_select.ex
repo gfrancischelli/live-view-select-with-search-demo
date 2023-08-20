@@ -54,6 +54,10 @@ defmodule DemoWeb.Components.SearchSelect do
 
         <form>
           <input
+            role="combobox"
+            aria-autocomplete="list"
+            aria-owns={"#{@name}-results"}
+            aria-label={"#{@label} Search"}
             phx-click-away={close_dropdown(@dd_id)}
             phx-keydown={JS.exec("phx-click-away")}
             phx-key="Tab"
@@ -70,15 +74,19 @@ defmodule DemoWeb.Components.SearchSelect do
         </form>
 
         <:expanded class="!px-2">
-          <button
-            :for={option <- @filtered_options}
-            tabindex="-1"
-            type="button"
-            phx-click={select_option(@field, option)}
-            class="block w-full text-left px-2 hover:bg-cyan-50 rounded-md pointer-cursor"
-          >
-            <%= option %>
-          </button>
+          <ul id={"#{@name}-results"} role="listbox">
+            <li
+              :for={option <- @filtered_options}
+              id={"suggestion-#{option}"}
+              data-value={option}
+              role="option"
+              phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{option}")}
+              phx-click={select_option(@field, option)}
+              class="px-2 data-[ui-active]:bg-cyan-50 rounded-md cursor-pointer"
+            >
+              <%= option %>
+            </li>
+          </ul>
 
           <.empty_state :if={@filtered_options == []} />
         </:expanded>
