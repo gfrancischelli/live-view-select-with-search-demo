@@ -19,6 +19,7 @@ defmodule DemoWeb.Components.SearchSelect do
       assigns
       |> assign(id: assigns.field.id, name: assigns.field.name, form: assigns.field.form)
       |> assign(search: "")
+      |> assign(:errors, Enum.map(assigns.field.errors, &translate_error(&1)))
       |> assign_new(:label, fn -> Phoenix.Naming.humanize(assigns.field.field) end)
       |> assign_new(:value, fn -> assigns.field.value end)
 
@@ -43,7 +44,12 @@ defmodule DemoWeb.Components.SearchSelect do
     <div id={@id} phx-feedback-for={@name} phx-hook="SelectComponent">
       <.proxy_input {assigns} />
       <.label><%= @label %></.label>
-      <.dropdown id={@dd_id} on_open={focus_search_input(@id)} phx-blur={nil}>
+      <.dropdown
+        id={@dd_id}
+        on_open={focus_search_input(@id)}
+        phx-blur={nil}
+        error={@field.form.source.action && @field.errors != []}
+      >
         <:closed>
           <%= if value_empty?(@field.value) do %>
             <span class="text-zinc-600"><%= @placeholder %></span>

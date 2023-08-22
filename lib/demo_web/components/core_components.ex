@@ -20,8 +20,8 @@ defmodule DemoWeb.CoreComponents do
   import DemoWeb.Gettext
 
   attr :id, :string, required: true
-  attr :errors, :list, default: []
-  attr :on_open, :any, default: &Function.identity/1, doc: "JS command to execute after opening"
+  attr :error, :boolean, default: false
+  attr :on_open, :any, default: nil, doc: "JS command to execute after opening"
   attr :rest, :global
 
   slot :inner_block,
@@ -51,13 +51,12 @@ defmodule DemoWeb.CoreComponents do
           "group-data-[ui-open]:rounded-b-none",
           "py-2 px-4 outline-0 cursor-pointer group-data-[ui-open]:cursor-default",
           "mt-2 block w-full rounded-lg text-zinc-900 group-focus:ring-0 sm:text-sm sm:leading-6",
-          "border phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          @errors == [] &&
-            "border-zinc-300 group-focus:border-zinc-400 group-data-[ui-open]:border-zinc-400 group-data-[ui-open]:border-b-zinc-200",
-          @errors != [] && "border-rose-400 group-focus:border-rose-400"
+          "border phx-no-feedback:border-zinc-300 phx-no-feedback:group-focus:border-zinc-400",
+          "group-data-[ui-open]:border-zinc-400 group-data-[ui-open]:border-b-zinc-200",
+          @error && "border-rose-400 group-focus:border-rose-400"
         ]}
       >
-        <div class={@closed && "group-data-[ui-open]:block hidden"}>
+        <div class={@closed != [] && "group-data-[ui-open]:block hidden"}>
           <%= render_slot(@inner_block) %>
         </div>
 
@@ -66,23 +65,27 @@ defmodule DemoWeb.CoreComponents do
         </div>
       </div>
 
-      <div :for={expanded <- @expanded} class={[
-        "hidden group-data-[ui-open]:block",
-        "py-2 px-4 absolute bg-white z-10",
-        "rounded-t-none border-t-0",
-        "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
-        "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
-        @errors == [] && "border-zinc-300 border-zinc-400",
-        expanded.class
-      ]}>
+      <div
+        :for={expanded <- @expanded}
+        class={[
+          "hidden group-data-[ui-open]:block",
+          "py-2 px-4 absolute bg-white z-10",
+          "rounded-t-none border-t-0",
+          "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
+          "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
+          "group-data-[ui-open]:border-zinc-400",
+          @error && "border-rose-400 group-focus:border-rose-400",
+          expanded && expanded[:class]
+        ]}
+      >
         <%= render_slot(expanded) %>
       </div>
     </div>
     """
   end
 
-  def open_dropdown(%JS{} = js, id) do
-    JS.set_attribute(js, {"data-ui-open", "true"}, to: "##{id}")
+  def open_dropdown(js, id) do
+    JS.set_attribute(js || %JS{}, {"data-ui-open", "true"}, to: "##{id}")
   end
 
   def close_dropdown(id), do: JS.remove_attribute("data-ui-open", to: "##{id}")
@@ -660,10 +663,10 @@ defmodule DemoWeb.CoreComponents do
 
   def empty_state(assigns) do
     ~H"""
-      <div class="text-slate-400 text-sm p-2 gap-y-2 flex flex-col items-center" >
-        <.icon name="hero-inbox-mini" class="w-8 h-8 bg-slate-300 block" />
-        <%= @msg %>
-      </div>
+    <div class="text-slate-400 text-sm p-2 gap-y-2 flex flex-col items-center">
+      <.icon name="hero-inbox-mini" class="w-8 h-8 bg-slate-300 block" />
+      <%= @msg %>
+    </div>
     """
   end
 
