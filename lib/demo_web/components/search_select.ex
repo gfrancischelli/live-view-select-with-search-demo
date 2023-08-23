@@ -33,6 +33,7 @@ defmodule DemoWeb.Components.SearchSelect do
     {:ok,
      socket
      |> assign(assigns)
+     |> assign_value_label()
      |> assign_filtered_options()}
   end
 
@@ -54,7 +55,7 @@ defmodule DemoWeb.Components.SearchSelect do
           <%= if value_empty?(@field.value) do %>
             <span class="text-zinc-600"><%= @placeholder %></span>
           <% else %>
-            <%= @field.value %>
+            <%= @value_label %>
           <% end %>
         </:closed>
 
@@ -73,7 +74,7 @@ defmodule DemoWeb.Components.SearchSelect do
             name="search"
             id={@id <> "search"}
             autocomplete="off"
-            placeholder={@field.value || @placeholder}
+            placeholder={@value_label || @placeholder}
             value={@search}
             class="outline-0 w-full text-zinc-900 placeholder:text-zinc-500 sm:text-sm sm:leading-6"
           />
@@ -82,21 +83,23 @@ defmodule DemoWeb.Components.SearchSelect do
         <:expanded class="!px-2">
           <ul id={"#{@name}-results"} role="listbox">
             <li
-              :for={option <- @filtered_options}
-              id={"suggestion-#{option}"}
-              data-value={option}
+              :for={{opt_label, opt_id} <- @filtered_options}
+              id={"suggestion-#{opt_id}"}
+              data-value={opt_id}
               role="option"
-              phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{option}")}
-              phx-click={select_option(@field, option)}
+              phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{opt_id}")}
+              phx-click={select_option(@field, opt_id)}
               class="px-2 data-[ui-active]:bg-cyan-50 rounded-md cursor-pointer"
             >
-              <%= option %>
+              <%= opt_label %>
             </li>
           </ul>
 
           <.empty_state :if={@filtered_options == []} />
         </:expanded>
       </.dropdown>
+
+      <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
     """
   end
@@ -117,7 +120,7 @@ defmodule DemoWeb.Components.SearchSelect do
   # JS Dispatches
 
   defp select_option(field, option) do
-    JS.dispatch("select-option", to: "select[name=#{field.name}]", detail: option)
+    JS.dispatch("select-option", to: "select[name='#{field.name}']", detail: option)
   end
 
   def focus_search_input(id) do
@@ -137,9 +140,10 @@ defmodule DemoWeb.Components.SearchSelect do
 
     filtered_options =
       options
-      |> Stream.reject(
-        &(&1 == field.value or (search_text != nil and not contains_normalized?(&1, search_text)))
-      )
+      |> Stream.reject(fn option ->
+        option_id(option) == field.value or
+          (search_text != nil and not contains_normalized?(option_label(option), search_text))
+      end)
       |> Enum.take(@max_filtered_options)
 
     assign(socket, filtered_options: filtered_options)
@@ -148,4 +152,39 @@ defmodule DemoWeb.Components.SearchSelect do
   defp contains_normalized?(a, b) do
     String.contains?(String.downcase(a), String.downcase(b))
   end
+
+  defp assign_value_label(socket) do
+    %{options: options, field: field} = socket.assigns
+
+    if match?([{_label, _value} | _tail], options) do
+      option = fetch_selected_option(field, options)
+      assign(socket, :value_label, option_label(option))
+    else
+      assign(socket, :value_label, field.value)
+    end
+  end
+
+  # Returns the option for the association in changeset with cardinality 1.
+  defp fetch_selected_option(field, options) do
+    id = field.value |> field_value_to_id() |> to_string()
+
+    Enum.find(options, fn
+      {_label, opt_id} -> to_string(opt_id) == id
+      opt_id -> to_string(opt_id) == id
+    end)
+  end
+
+  defp field_value_to_id(value) do
+    case value do
+      "" -> nil
+      nil -> nil
+      %{id: id} -> id
+      val when is_binary(val) or is_bitstring(val) or is_integer(val) or is_atom(val) -> val
+    end
+  end
+
+  defp option_label({label, _id}), do: label
+  defp option_label(value), do: value
+  defp option_id({_label, id}), do: id
+  defp option_id(value), do: value
 end
