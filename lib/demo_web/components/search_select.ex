@@ -98,8 +98,9 @@ defmodule DemoWeb.Components.SearchSelect do
         <:expanded class="!px-2">
           <ul id={"#{@name}-results"} role="listbox">
             <li
-              :for={{opt_label, opt_id} <- @filtered_options}
+              :for={{{opt_label, opt_id}, index} <- Enum.with_index(@filtered_options)}
               id={"suggestion-#{@name}-#{opt_id}"}
+              data-ui-active={index == 0}
               data-value={opt_id}
               role="option"
               phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{opt_id}")}
