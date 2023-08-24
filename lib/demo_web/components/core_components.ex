@@ -39,7 +39,7 @@ defmodule DemoWeb.CoreComponents do
     <div
       id={@id}
       tabindex="0"
-      class="group relative outline-0"
+      class="group/dropdown relative outline-0"
       phx-key="Enter"
       phx-keydown={open_dropdown(@on_open, @id)}
       phx-blur={Map.get(@rest, :"phx-blur", close_dropdown(@id))}
@@ -48,19 +48,20 @@ defmodule DemoWeb.CoreComponents do
         phx-click={open_dropdown(@on_open, @id)}
         aria-role="button"
         class={[
-          "group-data-[ui-open]:rounded-b-none",
-          "py-2 px-4 outline-0 cursor-pointer group-data-[ui-open]:cursor-default",
-          "mt-2 block w-full rounded-lg text-zinc-900 group-focus:ring-0 sm:text-sm sm:leading-6",
-          "border phx-no-feedback:border-zinc-300 phx-no-feedback:group-focus:border-zinc-400",
-          "group-data-[ui-open]:border-zinc-400 group-data-[ui-open]:border-b-zinc-200",
-          @error && "border-rose-400 group-focus:border-rose-400"
+          "group-data-[ui-open]/dropdown:rounded-b-none",
+          "py-2 px-3 outline-0 cursor-pointer group-data-[ui-open]/dropdown:cursor-default",
+          "mt-2 block w-full rounded-lg text-zinc-900 group-focus/dropdown:ring-0 sm:text-sm sm:leading-6",
+          "border group-focus/dropdown:border-zinc-400",
+          "group-data-[ui-open]/dropdown:border-zinc-400 group-data-[ui-open]/dropdown:border-b-zinc-200",
+          @error && "border-rose-400 phx-no-feedback:border-zinc-300",
+          !@error && "border-zinc-300 "
         ]}
       >
-        <div class={@closed != [] && "group-data-[ui-open]:block hidden"}>
+        <div class={@closed != [] && "group-data-[ui-open]/dropdown:block hidden"}>
           <%= render_slot(@inner_block) %>
         </div>
 
-        <div class="group-data-[ui-open]:hidden">
+        <div class="group-data-[ui-open]/dropdown:hidden">
           <%= render_slot(@closed) %>
         </div>
       </div>
@@ -68,13 +69,13 @@ defmodule DemoWeb.CoreComponents do
       <div
         :for={expanded <- @expanded}
         class={[
-          "hidden group-data-[ui-open]:block",
+          "hidden group-data-[ui-open]/dropdown:block",
           "py-2 px-4 absolute bg-white z-10",
           "rounded-t-none border-t-0",
           "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
           "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
-          "group-data-[ui-open]:border-zinc-400",
-          @error && "border-rose-400 group-focus:border-rose-400",
+          "group-data-[ui-open]/dropdown:border-zinc-400",
+          @error && "border-rose-400 group-focus/dropdown:border-rose-400",
           expanded && expanded[:class]
         ]}
       >
