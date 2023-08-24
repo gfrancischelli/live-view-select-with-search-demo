@@ -216,6 +216,7 @@ defmodule DemoWeb.Components.SearchSelect do
       val when is_binary(val) or is_bitstring(val) or is_integer(val) or is_atom(val) -> val
       %Ecto.Changeset{action: action, data: %{id: id}} when action != :replace -> id
       value when is_list(value) -> Enum.map(value, &field_value_to_id/1)
+      %Ecto.Association.NotLoaded{__field__: field} -> raise("Association #{field} must be loaded.")
       _ -> nil
     end
   end

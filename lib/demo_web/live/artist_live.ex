@@ -22,7 +22,10 @@ defmodule DemoWeb.ArtistLive do
   def handle_params(params, _uri, socket) do
     artist =
       if id = params["id"] do
-        Repo.get!(Artist, String.to_integer(id))
+        Artist
+        |> where(id: ^String.to_integer(id))
+        |> preload(:favorite_movies)
+        |> Repo.one!()
       else
         %Artist{favorite_movies: []}
       end
