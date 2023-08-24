@@ -11,9 +11,11 @@ defmodule DemoWeb.ArtistLive do
   alias Demo.Art.Artist
   alias Demo.Art.Movie
 
+  @rates ["⭐️", "⭐⭐️", "⭐⭐⭐", "⭐⭐⭐⭐"] |> Enum.with_index()
+
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign_movies(socket)}
+    {:ok, assign_movies(socket) |> assign(rates: @rates)}
   end
 
   @impl true
@@ -22,7 +24,7 @@ defmodule DemoWeb.ArtistLive do
       if id = params["id"] do
         Repo.get!(Artist, String.to_integer(id))
       else
-        %Artist{}
+        %Artist{favorite_movies: []}
       end
 
     form = artist |> change() |> to_form()
@@ -46,15 +48,14 @@ defmodule DemoWeb.ArtistLive do
 
     <.simple_form for={@form} class="w-full" phx-change="validate" phx-submit="save">
       <.input field={@form[:name]} label="Name" />
-      <.search_select options={@movies} field={@form[:favorite_movie_id]} />
+      <.search_select options={@rates} field={@form[:rate]} />
+      <.search_select options={@movies} field={@form[:favorite_movies]} />
       <:actions>
         <.button>Save</.button>
       </:actions>
     </.simple_form>
     """
   end
-
-  @required_fields [:name, :favorite_movie_id]
 
   @impl true
   def handle_event("validate", %{"artist" => params}, socket) do
@@ -76,10 +77,21 @@ defmodule DemoWeb.ArtistLive do
     end
   end
 
+  @required_fields [:name, :rate]
+
   defp to_changeset(artist, params) do
     artist
     |> cast(params, @required_fields)
+    |> put_assoc(:favorite_movies, parse_favorite_movies(params))
     |> validate_required(@required_fields)
+  end
+
+  defp parse_favorite_movies(params) do
+    ids =
+      (params["favorite_movies"] || [])
+      |> Enum.map(&String.to_integer/1)
+
+    Repo.all(where(Movie, [m], m.id in ^ids))
   end
 
   defp save(artist, params) do

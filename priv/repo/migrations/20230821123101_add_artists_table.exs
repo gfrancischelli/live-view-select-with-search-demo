@@ -4,6 +4,7 @@ defmodule Demo.Repo.Migrations.AddArtistsTable do
   def change do
     create table(:artists) do
       add :name, :string
+      add :rate, :integer
       add :favorite_movie_id, references(:movies)
     end
   end

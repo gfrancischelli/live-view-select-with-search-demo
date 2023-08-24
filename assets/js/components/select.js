@@ -2,12 +2,16 @@ const INPUT_EVENT = new Event("input", { bubbles: true });
 
 export const SelectComponent = {
   mounted() {
+    const hook = this;
     const select = this.el.querySelector("select")
     const searchInput = this.el.querySelector("input[name='search']")
     const listBox = this.el.querySelector("[role='listbox']")
 
+    this.select = select;
+    this.searchInput = searchInput;
+
     select.addEventListener(`select-option`, (event) => {
-      select_option(select, event.detail);
+      hook.select_option(event.detail.id);
     });
 
     this.el.addEventListener("clear-search", () => {
@@ -38,13 +42,23 @@ export const SelectComponent = {
         case "Enter":
           event.preventDefault();
           const active_option = get_active_option(listBox);
-          if (active_option) {
-            select_option(select, active_option.getAttribute("data-value"))
-            this.liveSocket.execJS(searchInput, searchInput.getAttribute("phx-click-away"))
-          }
+          if (active_option) hook.select_option(active_option.getAttribute("data-value"));
           break;
       }
     });
+  },
+  select_option(value) {
+    const option = document.createElement("option");
+
+    option.selected = true;
+    option.value = value;
+
+    this.select.add(option);
+    this.select.dispatchEvent(INPUT_EVENT);
+
+    this.searchInput.value = ""
+
+    this.liveSocket.execJS(this.el, this.el.getAttribute("data-js-on-select"))
   }
 }
 
@@ -74,16 +88,4 @@ function clear_active_results(listbox) {
   for (const el of listbox.querySelectorAll("[data-ui-active]")) {
     el.removeAttribute("data-ui-active");
   }
-}
-
-function select_option(select, option_text) {
-  const option = document.createElement("option");
-
-  option.selected = true;
-  option.value = option_text;
-  option.text = option_text;
-
-  select.add(option);
-
-  select.dispatchEvent(INPUT_EVENT);
 }

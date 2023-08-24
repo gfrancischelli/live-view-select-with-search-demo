@@ -33,16 +33,19 @@ defmodule DemoWeb.Components.SearchSelect do
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_value_label()
+     |> assign_selected_option()
      |> assign_filtered_options()}
   end
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :dd_id, assigns.id <> "-dropdown")
+    assigns =
+      assigns
+      |> assign(:dd_id, assigns.id <> "-dropdown")
+      |> assign(:multiple?, is_list(assigns.field.value))
 
     ~H"""
-    <div id={@id} phx-feedback-for={@name} phx-hook="SelectComponent">
+    <div id={@id} phx-feedback-for={@name} phx-hook="SelectComponent" data-js-on-select={not @multiple? && close_dropdown(@dd_id)}>
       <.proxy_input {assigns} />
       <.label><%= @label %></.label>
       <.dropdown
@@ -51,15 +54,23 @@ defmodule DemoWeb.Components.SearchSelect do
         phx-blur={nil}
         error={@field.form.source.action && @field.errors != []}
       >
-        <:closed>
+        <:closed :if={not @multiple?}>
           <%= if value_empty?(@field.value) do %>
             <span class="text-zinc-600"><%= @placeholder %></span>
           <% else %>
-            <%= @value_label %>
+            <%= option_label(@selected_option) %>
           <% end %>
         </:closed>
 
-        <form>
+        <div class="flex items-center flex-wrap gap-0.5">
+          <span
+            :if={@multiple?}
+            :for={{label, _id} <- List.wrap(@selected_option)}
+            class="rounded bg-indigo-500 py-0.5 px-1.5 text-white"
+          >
+            <%= label %>
+          </span>
+
           <input
             role="combobox"
             aria-autocomplete="list"
@@ -74,17 +85,21 @@ defmodule DemoWeb.Components.SearchSelect do
             name="search"
             id={@id <> "search"}
             autocomplete="off"
-            placeholder={@value_label || @placeholder}
+            placeholder={option_label(@selected_option) || @placeholder}
             value={@search}
-            class="outline-0 w-full text-zinc-900 placeholder:text-zinc-500 sm:text-sm sm:leading-6"
+            class={[
+              "outline-0 text-zinc-900 placeholder:text-zinc-500 sm:text-sm sm:leading-6",
+              not @multiple? && "w-full ",
+              @multiple? && "inline w-auto pl-1"
+            ]}
           />
-        </form>
+        </div>
 
         <:expanded class="!px-2">
           <ul id={"#{@name}-results"} role="listbox">
             <li
               :for={{opt_label, opt_id} <- @filtered_options}
-              id={"suggestion-#{opt_id}"}
+              id={"suggestion-#{@name}-#{opt_id}"}
               data-value={opt_id}
               role="option"
               phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{opt_id}")}
@@ -105,22 +120,31 @@ defmodule DemoWeb.Components.SearchSelect do
   end
 
   defp proxy_input(assigns) do
+    assigns =
+      assigns
+      |> update(:value, &field_value_to_id/1)
+      |> assign(:name, select_name(assigns.field))
+
     ~H"""
-    <select class="hidden" name={@field.name}>
+    <select multiple={@multiple?} class="hidden" name={@name}>
       <option value=""></option>
       <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
     </select>
     """
   end
 
+  defp select_name(field) do
+    field.name <> if(is_list(field.value), do: "[]", else: "")
+  end
+
   defp value_empty?(value) do
-    value == "" or value == nil
+    value == "" or value == nil or value == []
   end
 
   # JS Dispatches
 
   defp select_option(field, option) do
-    JS.dispatch("select-option", to: "select[name='#{field.name}']", detail: option)
+    JS.dispatch("select-option", to: "select[name='#{select_name(field)}']", detail: %{id: option})
   end
 
   def focus_search_input(id) do
@@ -138,10 +162,15 @@ defmodule DemoWeb.Components.SearchSelect do
   defp assign_filtered_options(socket, search_text \\ nil) do
     %{options: options, field: field} = socket.assigns
 
+    selected_ids =
+      field.value
+      |> List.wrap()
+      |> Enum.map(&field_value_to_id/1)
+
     filtered_options =
       options
       |> Stream.reject(fn option ->
-        option_id(option) == field.value or
+        option_id(option) in selected_ids or
           (search_text != nil and not contains_normalized?(option_label(option), search_text))
       end)
       |> Enum.take(@max_filtered_options)
@@ -153,15 +182,20 @@ defmodule DemoWeb.Components.SearchSelect do
     String.contains?(String.downcase(a), String.downcase(b))
   end
 
-  defp assign_value_label(socket) do
+  defp assign_selected_option(socket) do
     %{options: options, field: field} = socket.assigns
+    assign(socket, :selected_option, fetch_selected_option(field, options))
+  end
 
-    if match?([{_label, _value} | _tail], options) do
-      option = fetch_selected_option(field, options)
-      assign(socket, :value_label, option_label(option))
-    else
-      assign(socket, :value_label, field.value)
-    end
+  defp fetch_selected_option(field, [head | _tail]) when not is_tuple(head) do
+    # The value is equal to the label
+    {field.value, field.value}
+  end
+
+  defp fetch_selected_option(%{value: value}, options) when is_list(value) do
+    ids = Enum.map(value, fn val -> val |> field_value_to_id() |> to_string() end)
+
+    Enum.filter(options, fn option -> (option |> option_id() |> to_string()) in ids end)
   end
 
   # Returns the option for the association in changeset with cardinality 1.
@@ -180,11 +214,17 @@ defmodule DemoWeb.Components.SearchSelect do
       nil -> nil
       %{id: id} -> id
       val when is_binary(val) or is_bitstring(val) or is_integer(val) or is_atom(val) -> val
+      %Ecto.Changeset{action: action, data: %{id: id}} when action != :replace -> id
+      value when is_list(value) -> Enum.map(value, &field_value_to_id/1)
+      _ -> nil
     end
   end
 
+  defp option_label(list) when is_list(list), do: nil
   defp option_label({label, _id}), do: label
   defp option_label(value), do: value
+
+  defp option_id(list) when is_list(list), do: nil
   defp option_id({_label, id}), do: id
   defp option_id(value), do: value
 end
