@@ -8,8 +8,8 @@ export const SelectComponent = {
     this.listBox = this.el.querySelector("[role='listbox']")
     this.searchInput = this.el.querySelector("input[name='search']")
 
-    this.select.addEventListener(`select-option`, (event) => {
-      hook.select_option(event.detail.id);
+    this.select.addEventListener("select-option", (event) => {
+      this.select_option(event.detail.id);
     });
 
     this.el.addEventListener("clear-search", () => {
