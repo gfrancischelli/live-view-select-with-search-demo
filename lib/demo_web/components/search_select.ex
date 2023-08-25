@@ -32,27 +32,26 @@ defmodule DemoWeb.Components.SearchSelect do
   def update(assigns, socket) do
     {:ok,
      socket
+     |> assign(:dd_id, assigns.field.id <> "-dropdown")
+     |> assign(:multiple?, is_list(assigns.field.value))
      |> assign(assigns)
      |> assign_selected_option()
-     |> assign_filtered_options()}
+     |> assign_filtered_options()
+     |> then(&assign(&1, :on_select, on_select(&1.assigns)))
+    }
   end
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> assign(:dd_id, assigns.id <> "-dropdown")
-      |> assign(:multiple?, is_list(assigns.field.value))
-
     ~H"""
     <div
       id={@id}
       phx-feedback-for={@name}
       phx-hook="SelectComponent"
       phx-click-away={close_dropdown(@dd_id)}
-      data-js-on-select={on_select(assigns)}
+      data-js-on-select={@on_select}
     >
-      <.proxy_input {assigns} />
+      <.proxy_input multiple?={@multiple?} field={@field} options={@options} />
       <.label><%= @label %></.label>
       <.dropdown
         id={@dd_id}
@@ -70,8 +69,8 @@ defmodule DemoWeb.Components.SearchSelect do
 
         <div class="flex items-center flex-wrap gap-0.5">
           <span
-            :if={@multiple?}
             :for={{label, _id} <- List.wrap(@selected_option)}
+            :if={@multiple?}
             class="rounded bg-indigo-500 py-0.5 px-1.5 text-white"
           >
             <%= label %>
@@ -131,7 +130,7 @@ defmodule DemoWeb.Components.SearchSelect do
   defp proxy_input(assigns) do
     assigns =
       assigns
-      |> update(:value, &field_value_to_id/1)
+      |> assign(:value, field_value_to_id(assigns.field.value))
       |> assign(:name, select_name(assigns.field))
 
     ~H"""
@@ -156,7 +155,10 @@ defmodule DemoWeb.Components.SearchSelect do
   end
 
   defp select_option(field, option) do
-    JS.dispatch("select-option", to: "select[name='#{select_name(field)}']", detail: %{id: option})
+    JS.dispatch("select-option",
+      to: "select[name='#{select_name(field)}']",
+      detail: %{id: option}
+    )
   end
 
   def focus_search_input(id) do
