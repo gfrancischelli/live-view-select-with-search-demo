@@ -50,6 +50,10 @@ export const SelectComponent = {
           if (this.searchInput.value == "" && event.repeat == false) {
             this.remove_last_active_option();
           }
+          break;
+        case "Escape":
+          this.liveSocket.execJS(this.el, this.el.getAttribute("phx-click-away"));
+          break;
       }
     });
   },
