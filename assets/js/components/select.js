@@ -69,7 +69,8 @@ export const SelectComponent = {
 
     this.searchInput.value = ""
 
-    this.liveSocket.execJS(this.el, this.el.getAttribute("data-js-on-select"))
+    const cmd = this.el.getAttribute("data-js-on-select")
+    if (cmd) this.liveSocket.execJS(this.el, cmd)
   },
   get_active_option() {
     return this.listBox.querySelector("[data-ui-active]");

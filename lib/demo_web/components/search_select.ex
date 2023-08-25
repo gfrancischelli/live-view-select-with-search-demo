@@ -45,7 +45,13 @@ defmodule DemoWeb.Components.SearchSelect do
       |> assign(:multiple?, is_list(assigns.field.value))
 
     ~H"""
-    <div id={@id} phx-feedback-for={@name} phx-hook="SelectComponent" data-js-on-select={not @multiple? && close_dropdown(@dd_id)}>
+    <div
+      id={@id}
+      phx-feedback-for={@name}
+      phx-hook="SelectComponent"
+      phx-click-away={close_dropdown(@dd_id)}
+      data-js-on-select={on_select(assigns)}
+    >
       <.proxy_input {assigns} />
       <.label><%= @label %></.label>
       <.dropdown
@@ -76,8 +82,7 @@ defmodule DemoWeb.Components.SearchSelect do
             aria-autocomplete="list"
             aria-owns={"#{@name}-results"}
             aria-label={"#{@label} Search"}
-            phx-click-away={close_dropdown(@dd_id)}
-            phx-keydown={JS.exec("phx-click-away")}
+            phx-keydown={JS.exec("phx-click-away", to: "##{@id}")}
             phx-key="Tab"
             phx-change="search"
             phx-target={@myself}
@@ -146,6 +151,9 @@ defmodule DemoWeb.Components.SearchSelect do
   end
 
   # JS Dispatches
+  defp on_select(%{multiple?: multiple?, id: id, dd_id: dd_id}) do
+    if multiple?, do: focus_search_input(id), else: close_dropdown(dd_id)
+  end
 
   defp select_option(field, option) do
     JS.dispatch("select-option", to: "select[name='#{select_name(field)}']", detail: %{id: option})
