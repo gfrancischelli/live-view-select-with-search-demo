@@ -12,6 +12,10 @@ export const SelectComponent = {
       this.select_option(event.detail.id);
     });
 
+    this.el.addEventListener("remove-option", (event) => {
+      this.remove_option(event.target.getAttribute("data-value"));
+    });
+
     this.el.addEventListener("clear-search", () => {
       this.searchInput.value = ""
       this.searchInput.dispatchEvent(INPUT_EVENT)
@@ -48,6 +52,12 @@ export const SelectComponent = {
           }
       }
     });
+  },
+  remove_option(value) {
+    this.select.querySelector(`option[selected][value='${value}']`).remove()
+    this.select.dispatchEvent(INPUT_EVENT);
+    const cmd = this.el.getAttribute("data-js-on-select")
+    if (cmd) this.liveSocket.execJS(this.el, cmd)
   },
   remove_last_active_option() {
     if (this.select.type == "select-multiple") {

@@ -37,8 +37,7 @@ defmodule DemoWeb.Components.SearchSelect do
      |> assign(assigns)
      |> assign_selected_option()
      |> assign_filtered_options()
-     |> then(&assign(&1, :on_select, on_select(&1.assigns)))
-    }
+     |> then(&assign(&1, :on_select, on_select(&1.assigns)))}
   end
 
   @impl true
@@ -68,14 +67,13 @@ defmodule DemoWeb.Components.SearchSelect do
         </:closed>
 
         <div class="flex items-center flex-wrap gap-0.5">
-          <span
-            :for={{label, _id} <- List.wrap(@selected_option)}
+          <.option_pill
+            :for={{label, id} <- List.wrap(@selected_option)}
             :if={@multiple?}
-            class="rounded bg-indigo-500 py-0.5 px-1.5 text-white"
-          >
-            <%= label %>
-          </span>
-
+            id={id}
+            label={label}
+            phx-click={JS.dispatch("remove-option")}
+          />
           <input
             role="combobox"
             aria-autocomplete="list"
@@ -138,6 +136,27 @@ defmodule DemoWeb.Components.SearchSelect do
       <option value=""></option>
       <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
     </select>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :rest, :global, include: [:"phx-click"]
+
+  defp option_pill(assigns) do
+    ~H"""
+    <span class="rounded bg-indigo-500 py-0.5 px-1.5 text-white inline-flex items-center gap-1" >
+      <span><%= @label %></span>
+      <button
+        tabindex="-1"
+        type="button"
+        class="grid"
+        data-value={@id}
+        {@rest}
+      >
+        <.icon name="hero-x-mark h-3.5 w-3.5" />
+      </button>
+    </span>
     """
   end
 
