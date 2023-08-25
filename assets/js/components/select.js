@@ -42,8 +42,21 @@ export const SelectComponent = {
           const active_option = this.get_active_option();
           if (active_option) hook.select_option(active_option.getAttribute("data-value"));
           break;
+        case "Backspace":
+          if (this.searchInput.value == "" && event.repeat == false) {
+            this.remove_last_active_option();
+          }
       }
     });
+  },
+  remove_last_active_option() {
+    if (this.select.type == "select-multiple") {
+      const length = this.select.selectedOptions.length;
+      if (length != 0) {
+        this.select.selectedOptions[length - 1].remove();
+        this.select.dispatchEvent(INPUT_EVENT);
+      }
+    }
   },
   select_option(value) {
     const option = document.createElement("option");
