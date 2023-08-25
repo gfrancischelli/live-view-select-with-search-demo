@@ -85,13 +85,16 @@ defmodule DemoWeb.Components.SearchSelect do
             name="search"
             id={@id <> "search"}
             autocomplete="off"
-            placeholder={option_label(@selected_option) || @placeholder}
+            placeholder={!@multiple? && (option_label(@selected_option) || @placeholder)}
             value={@search}
-            class={[
-              "outline-0 text-zinc-900 placeholder:text-zinc-500 sm:text-sm sm:leading-6",
-              not @multiple? && "w-full ",
-              @multiple? && "inline w-auto pl-1"
-            ]}
+            class={
+              [
+                "outline-0 text-zinc-900 placeholder:text-zinc-500 sm:text-sm sm:leading-6",
+                if(@multiple?, do: "inline w-auto pl-1", else: "w-full"),
+                # Only display when input is open or no option is selected
+                @multiple? && "hidden group-data-[ui-open]/dropdown:block [&:nth-child(1)]:block"
+              ]
+            }
           />
         </div>
 
