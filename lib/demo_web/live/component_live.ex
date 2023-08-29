@@ -4,10 +4,19 @@ defmodule DemoWeb.ComponentLive do
 
   import DemoWeb.Components.SearchSelect
 
-  def render(%{live_action: :dropdown} = assigns) do
+  def handle_params(%{"id" => id}, _uri, socket) do
+    {:noreply,assign(socket, :example, String.to_integer(id))}
+  end
+
+  def render(%{example: 1} = assigns) do
     ~H"""
     <.dropdown id="my-dropdown">
-      Click to expand
+      The world is full of possibilities
+
+      <:closed>
+        Click to expand
+      </:closed>
+
       <:expanded>
         I'm expanded hoooray
         <ul class="list-disc list-inside">
@@ -16,10 +25,6 @@ defmodule DemoWeb.ComponentLive do
         </ul>
       </:expanded>
     </.dropdown>
-
-    <.simple_form :let={f} for={%{}} as={:story} class="w-full">
-      <.input field={f[:field]}/>
-    </.simple_form>
     """
   end
 

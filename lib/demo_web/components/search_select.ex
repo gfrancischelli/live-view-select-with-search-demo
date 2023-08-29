@@ -15,26 +15,22 @@ defmodule DemoWeb.Components.SearchSelect do
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
 
   def search_select(assigns) do
-    assigns =
-      assigns
-      |> assign(id: assigns.field.id, name: assigns.field.name, form: assigns.field.form)
-      |> assign(search: "")
-      |> assign(:errors, Enum.map(assigns.field.errors, &translate_error(&1)))
-      |> assign_new(:label, fn -> Phoenix.Naming.humanize(assigns.field.field) end)
-      |> assign_new(:value, fn -> assigns.field.value end)
-
     ~H"""
-    <.live_component module={__MODULE__} {assigns} />
+    <.live_component module={__MODULE__} id={@field.id} {assigns} />
     """
   end
 
-  @impl true
+ @impl true
   def update(assigns, socket) do
     {:ok,
      socket
+     |> assign(assigns)
+     |> assign(name: assigns.field.name, search: "")
+     |> assign_new(:label, fn -> Phoenix.Naming.humanize(assigns.field.field) end)
+     |> assign(:errors, Enum.map(assigns.field.errors, &translate_error(&1)))
      |> assign(:dd_id, assigns.field.id <> "-dropdown")
      |> assign(:multiple?, is_list(assigns.field.value))
-     |> assign(assigns)
+     |> assign(:value, fn -> assigns.field.value end)
      |> assign_selected_option()
      |> assign_filtered_options()
      |> then(&assign(&1, :on_select, on_select(&1.assigns)))}
@@ -55,7 +51,7 @@ defmodule DemoWeb.Components.SearchSelect do
       <.dropdown
         id={@dd_id}
         on_open={focus_search_input(@id)}
-        phx-blur={nil}
+        on_blur={nil}
         error={@field.form.source.action && @field.errors != []}
       >
         <:closed :if={not @multiple?}>
@@ -101,15 +97,14 @@ defmodule DemoWeb.Components.SearchSelect do
         </div>
 
         <:expanded class="!px-2">
-          <ul id={"#{@name}-results"} role="listbox">
+          <ul id={"#{@name}-results"} role="listbox" class="group/listbox">
             <li
               :for={{{opt_label, opt_id}, index} <- Enum.with_index(@filtered_options)}
               id={"suggestion-#{@name}-#{opt_id}"}
               data-ui-active={index == 0}
               data-value={opt_id}
               role="option"
-              phx-hover={JS.set_attribute({"data-ui-active", "true"}, to: "suggestion-#{opt_id}")}
-              phx-click={select_option(@field, opt_id)}
+              phx-click={select_option(opt_id)}
               class="px-2 data-[ui-active]:bg-cyan-50 rounded-md cursor-pointer"
             >
               <%= opt_label %>
@@ -145,15 +140,9 @@ defmodule DemoWeb.Components.SearchSelect do
 
   defp option_pill(assigns) do
     ~H"""
-    <span class="rounded bg-indigo-500 py-0.5 px-1.5 text-white inline-flex items-center gap-1" >
+    <span class="rounded bg-indigo-500 py-0.5 px-1.5 text-white inline-flex items-center gap-1">
       <span><%= @label %></span>
-      <button
-        tabindex="-1"
-        type="button"
-        class="grid"
-        data-value={@id}
-        {@rest}
-      >
+      <button tabindex="-1" type="button" class="grid" data-value={@id} {@rest}>
         <.icon name="hero-x-mark h-3.5 w-3.5" />
       </button>
     </span>
@@ -173,11 +162,8 @@ defmodule DemoWeb.Components.SearchSelect do
     if multiple?, do: focus_search_input(id), else: close_dropdown(dd_id)
   end
 
-  defp select_option(field, option) do
-    JS.dispatch("select-option",
-      to: "select[name='#{select_name(field)}']",
-      detail: %{id: option}
-    )
+  defp select_option(option) do
+    JS.dispatch("select-option", detail: %{id: option})
   end
 
   def focus_search_input(id) do

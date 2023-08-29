@@ -22,7 +22,7 @@ defmodule DemoWeb.CoreComponents do
   attr :id, :string, required: true
   attr :error, :boolean, default: false
   attr :on_open, :any, default: nil, doc: "JS command to execute after opening"
-  attr :rest, :global
+  attr :on_blur, :any
 
   slot :inner_block,
     doc:
@@ -35,28 +35,33 @@ defmodule DemoWeb.CoreComponents do
   slot :closed, doc: "Alternative markup to display in the always visible block when closed"
 
   def dropdown(assigns) do
+    assigns = assign_new(assigns, :on_blur, fn -> close_dropdown(assigns.id) end)
+
     ~H"""
     <div
       id={@id}
       tabindex="0"
       class="group/dropdown relative outline-0"
-      phx-key="Enter"
-      phx-keydown={open_dropdown(@on_open, @id)}
-      phx-blur={Map.get(@rest, :"phx-blur", close_dropdown(@id))}
+      phx-click-away={@on_blur}
+      phx-click={open_dropdown(@on_open, @id)}
+      phx-focus={JS.exec("phx-click")}
+      phx-blur={@on_blur}
+      tabindex="0"
     >
-      <div
-        phx-click={open_dropdown(@on_open, @id)}
-        aria-role="button"
-        class={[
-          "group-data-[ui-open]/dropdown:rounded-b-none",
-          "py-2 px-3 outline-0 cursor-pointer group-data-[ui-open]/dropdown:cursor-default",
-          "mt-2 block w-full rounded-lg text-zinc-900 group-focus/dropdown:ring-0 sm:text-sm sm:leading-6",
-          "border group-focus/dropdown:border-zinc-400",
-          "group-data-[ui-open]/dropdown:border-zinc-400 group-data-[ui-open]/dropdown:border-b-zinc-200",
-          @error && "border-rose-400 phx-no-feedback:border-zinc-300",
-          !@error && "border-zinc-300 "
-        ]}
-      >
+      <div class={[
+        "block w-full py-2 px-3 mt-2 outline-0",
+        "sm:text-sm sm:leading-6 text-zinc-900",
+        "outline-0 border rounded-lg cursor-pointer",
+        "group-focus/dropdown:ring-0",
+        "group-focus/dropdown:border-zinc-400",
+        "group-hover/dropdown:border-zinc-400",
+        "group-data-[ui-open]/dropdown:rounded-b-none",
+        "group-data-[ui-open]/dropdown:cursor-default",
+        "group-data-[ui-open]/dropdown:border-zinc-400",
+        "group-data-[ui-open]/dropdown:border-b-zinc-200",
+        @error && "border-rose-400 phx-no-feedback:border-zinc-300",
+        !@error && "border-zinc-300 "
+      ]}>
         <div class={@closed != [] && "group-data-[ui-open]/dropdown:block hidden"}>
           <%= render_slot(@inner_block) %>
         </div>
@@ -69,12 +74,12 @@ defmodule DemoWeb.CoreComponents do
       <div
         :for={expanded <- @expanded}
         class={[
-          "hidden group-data-[ui-open]/dropdown:block",
-          "py-2 px-4 absolute bg-white z-10",
-          "rounded-t-none border-t-0",
-          "block w-full rounded-lg text-zinc-900 ring-0 sm:text-sm sm:leading-6",
-          "border phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
+          "w-full hidden py-2 px-4 absolute bg-white z-10",
+          "border rounded-t-none rounded-lg border-t-0",
+          "text-zinc-900 ring-0 sm:text-sm sm:leading-6",
           "group-data-[ui-open]/dropdown:border-zinc-400",
+          "group-data-[ui-open]/dropdown:block",
+          "phx-no-feedback:border-zinc-300 phx-no-feedback:border-zinc-400",
           @error && "border-rose-400 group-focus/dropdown:border-rose-400",
           expanded && expanded[:class]
         ]}
@@ -86,10 +91,15 @@ defmodule DemoWeb.CoreComponents do
   end
 
   def open_dropdown(js, id) do
-    JS.set_attribute(js || %JS{}, {"data-ui-open", "true"}, to: "##{id}")
+    (js || %JS{})
+    |> JS.set_attribute({"data-ui-open", "true"}, to: "##{id}")
+    |> JS.remove_attribute("tabindex", to: "##{id}")
   end
 
-  def close_dropdown(id), do: JS.remove_attribute("data-ui-open", to: "##{id}")
+  def close_dropdown(id) do
+    JS.remove_attribute("data-ui-open", to: "##{id}")
+    |> JS.set_attribute({"tabindex", 0}, to: "##{id}")
+  end
 
   @doc """
   Renders a modal.

@@ -1,6 +1,6 @@
-const INPUT_EVENT = new Event("input", { bubbles: true });
 
 export const SelectComponent = {
+  INPUT_EVENT: new Event("input", { bubbles: true }),
   mounted() {
     const hook = this;
 
@@ -8,7 +8,7 @@ export const SelectComponent = {
     this.listBox = this.el.querySelector("[role='listbox']")
     this.searchInput = this.el.querySelector("input[name='search']")
 
-    this.select.addEventListener("select-option", (event) => {
+    this.el.addEventListener("select-option", (event) => {
       this.select_option(event.detail.id);
     });
 
@@ -18,7 +18,7 @@ export const SelectComponent = {
 
     this.el.addEventListener("clear-search", () => {
       this.searchInput.value = ""
-      this.searchInput.dispatchEvent(INPUT_EVENT)
+      this.searchInput.dispatchEvent(this.INPUT_EVENT)
     });
 
     this.listBox.addEventListener("mouseover", (event) => {
@@ -44,7 +44,9 @@ export const SelectComponent = {
         case "Enter":
           event.preventDefault();
           const active_option = this.get_active_option();
-          if (active_option) hook.select_option(active_option.getAttribute("data-value"));
+          if (active_option) {
+            this.liveSocket.execJS(active_option, active_option.getAttribute("phx-click"));
+          }
           break;
         case "Backspace":
           if (this.searchInput.value == "" && event.repeat == false) {
@@ -52,6 +54,7 @@ export const SelectComponent = {
           }
           break;
         case "Escape":
+          event.preventDefault()
           this.liveSocket.execJS(this.el, this.el.getAttribute("phx-click-away"));
           break;
       }
@@ -59,7 +62,7 @@ export const SelectComponent = {
   },
   remove_option(value) {
     this.select.querySelector(`option[selected][value='${value}']`).remove()
-    this.select.dispatchEvent(INPUT_EVENT);
+    this.select.dispatchEvent(this.INPUT_EVENT);
     const cmd = this.el.getAttribute("data-js-on-select")
     if (cmd) this.liveSocket.execJS(this.el, cmd)
   },
@@ -68,7 +71,7 @@ export const SelectComponent = {
       const length = this.select.selectedOptions.length;
       if (length != 0) {
         this.select.selectedOptions[length - 1].remove();
-        this.select.dispatchEvent(INPUT_EVENT);
+        this.select.dispatchEvent(this.INPUT_EVENT);
       }
     }
   },
@@ -79,12 +82,14 @@ export const SelectComponent = {
     option.value = value;
 
     this.select.add(option);
-    this.select.dispatchEvent(INPUT_EVENT);
+    this.select.dispatchEvent(this.INPUT_EVENT);
 
-    this.searchInput.value = ""
-
-    const cmd = this.el.getAttribute("data-js-on-select")
-    if (cmd) this.liveSocket.execJS(this.el, cmd)
+    if (this.select.type = "select-multiple") {
+      this.searchInput.value = ""
+      this.searchInput.focus()
+    } else {
+      this.liveSocket.execJS(this.el, this.el.getAttribute("phx-click-away"))
+    }
   },
   get_active_option() {
     return this.listBox.querySelector("[data-ui-active]");
@@ -111,6 +116,9 @@ export const SelectComponent = {
 
     active_option?.removeAttribute("data-ui-active")
     new_active_option?.setAttribute("data-ui-active", true)
+
+    console.log(new_active_option)
+    console.log(this.searchInput)
 
     this.searchInput.setAttribute("aria-activedescendant", new_active_option?.id)
   }
