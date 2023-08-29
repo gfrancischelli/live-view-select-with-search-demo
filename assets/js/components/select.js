@@ -8,6 +8,10 @@ export const SelectComponent = {
     this.listBox = this.el.querySelector("[role='listbox']")
     this.searchInput = this.el.querySelector("input[name='search']")
 
+    this.searchInput.addEventListener("do-search", e => {
+      this.search();
+    })
+
     this.el.addEventListener("select-option", (event) => {
       this.select_option(event.detail.id);
     });
@@ -18,7 +22,7 @@ export const SelectComponent = {
 
     this.el.addEventListener("clear-search", () => {
       this.searchInput.value = ""
-      this.searchInput.dispatchEvent(this.INPUT_EVENT)
+      this.liveSocket.execJS(this.searchInput, this.searchInput.getAttribute("phx-change"));
     });
 
     this.listBox.addEventListener("mouseover", (event) => {
@@ -60,6 +64,23 @@ export const SelectComponent = {
       }
     });
   },
+  search() {
+    const selector = `#${this.el.id} input[role='combobox']`
+
+    const payload = {
+      id: this.el.id,
+      search_text: this.searchInput.value,
+      field: this.el.getAttribute("data-js-field")
+    }
+
+    const phx_target = this.searchInput.getAttribute("phx-target")
+
+    if (phx_target) {
+      this.pushEventTo(phx_target, "search", payload);
+    } else {
+      this.pushEvent("search", payload);
+    }
+  },
   remove_option(value) {
     this.select.querySelector(`option[selected][value='${value}']`).remove()
     this.select.dispatchEvent(this.INPUT_EVENT);
@@ -72,6 +93,7 @@ export const SelectComponent = {
       if (length != 0) {
         this.select.selectedOptions[length - 1].remove();
         this.select.dispatchEvent(this.INPUT_EVENT);
+        this.search();
       }
     }
   },
@@ -85,8 +107,9 @@ export const SelectComponent = {
     this.select.dispatchEvent(this.INPUT_EVENT);
 
     if (this.select.type = "select-multiple") {
-      this.searchInput.value = ""
-      this.searchInput.focus()
+      this.searchInput.value = "";
+      this.searchInput.focus();
+      this.search();
     } else {
       this.liveSocket.execJS(this.el, this.el.getAttribute("phx-click-away"))
     }

@@ -9,7 +9,8 @@ defmodule DemoWeb.Components.SearchSelect do
   attr :placeholder, :string, default: "Select"
   attr :search_debounce, :integer, default: 100
 
-  attr :options, :list, required: true
+  attr :options, :any, default: :async
+  attr :option_label, :atom, default: nil
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -20,11 +21,26 @@ defmodule DemoWeb.Components.SearchSelect do
     """
   end
 
- @impl true
+  def update_options(id, options) when is_list(options) do
+    send_update(__MODULE__, id: id, async_options: options)
+  end
+
+  @impl true
+  def update(%{async_options: async_options}, socket) do
+    {:ok,
+     socket
+     |> assign(:options, async_options)
+     |> assign_selected_option()
+     |> assign_filtered_options()}
+  end
+
+  @impl true
   def update(assigns, socket) do
     {:ok,
      socket
      |> assign(assigns)
+     |> assign_new(:lazy?, fn -> assigns.options == :async end)
+     |> assign(:options, if(assigns.options == :async, do: [], else: assigns.options))
      |> assign(name: assigns.field.name, search: "")
      |> assign_new(:label, fn -> Phoenix.Naming.humanize(assigns.field.field) end)
      |> assign(:errors, Enum.map(assigns.field.errors, &translate_error(&1)))
@@ -45,8 +61,9 @@ defmodule DemoWeb.Components.SearchSelect do
       phx-hook="SelectComponent"
       phx-click-away={close_dropdown(@dd_id)}
       data-js-on-select={@on_select}
+      data-js-field={@field.field}
     >
-      <.proxy_input multiple?={@multiple?} field={@field} options={@options} />
+      <.proxy_input multiple?={@multiple?} field={@field} options={@selected_option} />
       <.label><%= @label %></.label>
       <.dropdown
         id={@dd_id}
@@ -75,10 +92,11 @@ defmodule DemoWeb.Components.SearchSelect do
             aria-autocomplete="list"
             aria-owns={"#{@name}-results"}
             aria-label={"#{@label} Search"}
+            phx-focus={JS.dispatch("clear-search")}
             phx-keydown={JS.exec("phx-click-away", to: "##{@id}")}
+            phx-change={JS.dispatch("do-search")}
             phx-key="Tab"
-            phx-change="search"
-            phx-target={@myself}
+            phx-target={unless(@lazy?, do: @myself)}
             phx-debounce={@search_debounce}
             name="search"
             id={@id <> "search"}
@@ -129,7 +147,7 @@ defmodule DemoWeb.Components.SearchSelect do
     ~H"""
     <select multiple={@multiple?} class="hidden" name={@name}>
       <option value=""></option>
-      <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
+      <%= Phoenix.HTML.Form.options_for_select(List.wrap(@options), @value) %>
     </select>
     """
   end
@@ -168,17 +186,22 @@ defmodule DemoWeb.Components.SearchSelect do
 
   def focus_search_input(id) do
     input_selector = "##{id} input[name='search']"
-
-    JS.dispatch("clear-search", to: input_selector)
+    %JS{}
     |> JS.focus(to: input_selector)
   end
 
   @impl true
-  def handle_event("search", %{"search" => search_text}, socket) do
+  def handle_event("search", %{"search_text" => search_text}, socket) do
     {:noreply, socket |> assign(search: search_text) |> assign_filtered_options(search_text)}
   end
 
-  defp assign_filtered_options(socket, search_text \\ nil) do
+  defp assign_filtered_options(socket, search_text \\ nil)
+
+  defp assign_filtered_options(%{assigns: %{options: :async}} = socket, _search) do
+    socket
+  end
+
+  defp assign_filtered_options(socket, search_text) do
     %{options: options, field: field} = socket.assigns
 
     selected_ids =
@@ -201,9 +224,44 @@ defmodule DemoWeb.Components.SearchSelect do
     String.contains?(String.downcase(a), String.downcase(b))
   end
 
-  defp assign_selected_option(socket) do
+  defp assign_selected_option(%{assigns: %{option_label: nil}} = socket) do
     %{options: options, field: field} = socket.assigns
     assign(socket, :selected_option, fetch_selected_option(field, options))
+  end
+
+  defp assign_selected_option(%{assigns: %{option_label: option_label}} = socket) do
+    %{field: field} = socket.assigns
+
+    selection =
+      case field do
+        %{value: [bin | _tail]} when is_binary(bin) ->
+          field
+          |> get_in([Access.key(:form), Access.key(:data), Access.key(field.field)])
+          |> field_value_to_option_tuple(option_label)
+
+        %{value: value} ->
+          field_value_to_option_tuple(value, option_label)
+      end
+
+    assign(socket, :selected_option, selection)
+  end
+
+  defp field_value_to_option_tuple(value, option_label) do
+    case value do
+      %{^option_label => label, :id => id} ->
+        {label, id}
+
+      [_head | _tail] ->
+        value
+        |> Enum.map(&field_value_to_option_tuple(&1, option_label))
+        |> Enum.reject(&is_nil/1)
+
+      %Ecto.Changeset{action: action, data: data} when action != :replace ->
+        field_value_to_option_tuple(data, option_label)
+
+      _ ->
+        nil
+    end
   end
 
   defp fetch_selected_option(field, [head | _tail]) when not is_tuple(head) do

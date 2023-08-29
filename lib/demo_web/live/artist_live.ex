@@ -2,7 +2,9 @@ defmodule DemoWeb.ArtistLive do
   use DemoWeb, :live_view
 
   import DemoWeb.CoreComponents
-  import DemoWeb.Components.SearchSelect
+
+  alias DemoWeb.Components.SearchSelect
+  import SearchSelect
 
   import Ecto.Changeset
   import Ecto.Query
@@ -15,7 +17,7 @@ defmodule DemoWeb.ArtistLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign_movies(socket) |> assign(rates: @rates)}
+    {:ok, assign(socket, rates: @rates)}
   end
 
   @impl true
@@ -35,15 +37,6 @@ defmodule DemoWeb.ArtistLive do
     {:noreply, assign(socket, artist: artist, form: form)}
   end
 
-  defp assign_movies(socket) do
-    if connected?(socket) do
-      query = select(Movie, [m], {m.title, m.id})
-      assign(socket, movies: Repo.all(query))
-    else
-      assign(socket, movies: [])
-    end
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -52,7 +45,7 @@ defmodule DemoWeb.ArtistLive do
     <.simple_form for={@form} class="w-full" phx-change="validate" phx-submit="save">
       <.input field={@form[:name]} label="Name" />
       <.search_select options={@rates} field={@form[:rate]} />
-      <.search_select options={@movies} field={@form[:favorite_movies]} />
+      <.search_select field={@form[:favorite_movies]} option_label={:title} />
       <:actions>
         <.button>Save</.button>
       </:actions>
@@ -64,6 +57,21 @@ defmodule DemoWeb.ArtistLive do
   def handle_event("validate", %{"artist" => params}, socket) do
     changeset = to_changeset(socket.assigns.artist, params)
     {:noreply, assign(socket, :form, to_form(%{changeset | action: :validate}))}
+  end
+
+  @impl true
+  def handle_event("search", %{"field" => "favorite_movies"} = params, socket) do
+    %{"search_text" => text, "id" => id} = params
+
+    options =
+      Movie
+      |> where([m], ilike(m.title, ^"%#{text}%"))
+      |> select([m], {m.title, m.id})
+      |> Repo.all()
+
+    SearchSelect.update_options(id, options)
+
+    {:noreply, socket}
   end
 
   @impl true
