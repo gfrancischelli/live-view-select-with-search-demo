@@ -26,9 +26,19 @@ import { SelectComponent } from "./components/select"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
+function onBeforeElUpdated(fromEl, toEl) {
+  for (const attr of fromEl.attributes) {
+    if (attr.name.startsWith("data-ui-")) {
+      toEl.setAttribute(attr.name, attr.value);
+    }
+  }
+}
+
+
 let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
-  hooks: { SelectComponent }
+  hooks: { SelectComponent },
+  dom: { onBeforeElUpdated },
 })
 
 // Show progress bar on live navigation and form submits

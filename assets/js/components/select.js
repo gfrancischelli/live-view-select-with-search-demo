@@ -1,16 +1,20 @@
 
 export const SelectComponent = {
+  LOADING_SELECTOR: "[data-ui-loading]",
+  ACTIVE_SELECTOR: "[data-ui-active]",
   INPUT_EVENT: new Event("input", { bubbles: true }),
   mounted() {
-    const hook = this;
-
     this.select = this.el.querySelector("select")
     this.listBox = this.el.querySelector("[role='listbox']")
     this.searchInput = this.el.querySelector("input[name='search']")
 
     this.searchInput.addEventListener("do-search", e => {
       this.search();
-    })
+    });
+
+    this.el.addEventListener("clear-search-input", () => {
+      this.searchInput.value = "";
+    });
 
     this.el.addEventListener("select-option", (event) => {
       this.select_option(event.detail.id);
@@ -21,7 +25,7 @@ export const SelectComponent = {
     });
 
     this.el.addEventListener("clear-search", () => {
-      this.searchInput.value = ""
+      this.searchInput.value = "";
       this.liveSocket.execJS(this.searchInput, this.searchInput.getAttribute("phx-change"));
     });
 
@@ -65,7 +69,8 @@ export const SelectComponent = {
     });
   },
   search() {
-    const selector = `#${this.el.id} input[role='combobox']`
+    this.el.setAttribute("data-ui-loading", true);
+    this.clear_active_results();
 
     const payload = {
       id: this.el.id,
@@ -75,10 +80,14 @@ export const SelectComponent = {
 
     const phx_target = this.searchInput.getAttribute("phx-target")
 
+    const callback = () => {
+      requestAnimationFrame(() => this.el.removeAttribute("data-ui-loading"))
+    }
+
     if (phx_target) {
-      this.pushEventTo(phx_target, "search", payload);
+      this.pushEventTo(phx_target, "search", payload, callback);
     } else {
-      this.pushEvent("search", payload);
+      this.pushEvent("search", payload, callback);
     }
   },
   remove_option(value) {
@@ -114,6 +123,9 @@ export const SelectComponent = {
       this.liveSocket.execJS(this.el, this.el.getAttribute("phx-click-away"))
     }
   },
+  clear_active_option() {
+    get_active_option()?.removeAttribute("[data-ui-active]")
+  },
   get_active_option() {
     return this.listBox.querySelector("[data-ui-active]");
   },
@@ -139,9 +151,6 @@ export const SelectComponent = {
 
     active_option?.removeAttribute("data-ui-active")
     new_active_option?.setAttribute("data-ui-active", true)
-
-    console.log(new_active_option)
-    console.log(this.searchInput)
 
     this.searchInput.setAttribute("aria-activedescendant", new_active_option?.id)
   }

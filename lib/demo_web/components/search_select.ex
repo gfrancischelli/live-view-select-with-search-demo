@@ -11,6 +11,7 @@ defmodule DemoWeb.Components.SearchSelect do
 
   attr :options, :any, default: :async
   attr :option_label, :atom, default: nil
+  attr :load_options, :any, default: nil
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -57,6 +58,7 @@ defmodule DemoWeb.Components.SearchSelect do
     ~H"""
     <div
       id={@id}
+      class="group/select"
       phx-feedback-for={@name}
       phx-hook="SelectComponent"
       phx-click-away={close_dropdown(@dd_id)}
@@ -92,11 +94,10 @@ defmodule DemoWeb.Components.SearchSelect do
             aria-autocomplete="list"
             aria-owns={"#{@name}-results"}
             aria-label={"#{@label} Search"}
-            phx-focus={JS.dispatch("clear-search")}
             phx-keydown={JS.exec("phx-click-away", to: "##{@id}")}
             phx-change={JS.dispatch("do-search")}
             phx-key="Tab"
-            phx-target={unless(@lazy?, do: @myself)}
+            phx-target={unless(@lazy? and @load_options == nil, do: @myself)}
             phx-debounce={@search_debounce}
             name="search"
             id={@id <> "search"}
@@ -115,26 +116,38 @@ defmodule DemoWeb.Components.SearchSelect do
         </div>
 
         <:expanded class="!px-2">
-          <ul id={"#{@name}-results"} role="listbox" class="group/listbox">
-            <li
-              :for={{{opt_label, opt_id}, index} <- Enum.with_index(@filtered_options)}
-              id={"suggestion-#{@name}-#{opt_id}"}
-              data-ui-active={index == 0}
-              data-value={opt_id}
-              role="option"
-              phx-click={select_option(opt_id)}
-              class="px-2 data-[ui-active]:bg-cyan-50 rounded-md cursor-pointer"
-            >
-              <%= opt_label %>
-            </li>
-          </ul>
+          <.loading_indicator />
 
-          <.empty_state :if={@filtered_options == []} />
+          <div class="group-data-[ui-loading]/select:hidden">
+            <ul id={"#{@name}-results"} role="listbox" class="group/listbox">
+              <li
+                :for={{{opt_label, opt_id}, index} <- Enum.with_index(@filtered_options)}
+                id={"suggestion-#{@name}-#{opt_id}"}
+                data-ui-active={index == 0}
+                data-value={opt_id}
+                role="option"
+                phx-click={select_option(opt_id)}
+                class="px-2 data-[ui-active]:bg-cyan-50 rounded-md cursor-pointer"
+              >
+                <%= opt_label %>
+              </li>
+            </ul>
+
+            <.empty_state :if={@filtered_options == []} />
+          </div>
         </:expanded>
       </.dropdown>
 
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
+    """
+  end
+
+  defp loading_indicator(assigns) do
+    ~H"""
+    <.delay_loading>
+      <.spinner />
+    </.delay_loading>
     """
   end
 
@@ -186,13 +199,24 @@ defmodule DemoWeb.Components.SearchSelect do
 
   def focus_search_input(id) do
     input_selector = "##{id} input[name='search']"
+
     %JS{}
     |> JS.focus(to: input_selector)
+    |> JS.dispatch("do-search", to: input_selector)
   end
 
   @impl true
   def handle_event("search", %{"search_text" => search_text}, socket) do
-    {:noreply, socket |> assign(search: search_text) |> assign_filtered_options(search_text)}
+    {:noreply,
+     socket
+     |> assign_options_from_loader(search_text)
+     |> assign_filtered_options(search_text)}
+  end
+
+  defp assign_options_from_loader(socket, search_text) do
+    with %{assigns: %{load_options: loader}} when loader != nil <- socket do
+      assign(socket, :options, loader.(search_text))
+    end
   end
 
   defp assign_filtered_options(socket, search_text \\ nil)

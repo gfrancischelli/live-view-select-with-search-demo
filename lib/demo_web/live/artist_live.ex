@@ -63,6 +63,10 @@ defmodule DemoWeb.ArtistLive do
   def handle_event("search", %{"field" => "favorite_movies"} = params, socket) do
     %{"search_text" => text, "id" => id} = params
 
+    jitter = Enum.random(1..100) / 100
+
+    :timer.sleep((1500 * jitter) |> ceil())
+
     options =
       Movie
       |> where([m], ilike(m.title, ^"%#{text}%"))
@@ -99,8 +103,10 @@ defmodule DemoWeb.ArtistLive do
 
   defp parse_favorite_movies(params) do
     ids =
-      (params["favorite_movies"] || [])
-      |> Enum.map(&String.to_integer/1)
+      Enum.map(
+        params["favorite_movies"] || [],
+        &String.to_integer/1
+      )
 
     Repo.all(where(Movie, [m], m.id in ^ids))
   end
