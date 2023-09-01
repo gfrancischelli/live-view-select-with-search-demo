@@ -17,7 +17,10 @@ defmodule DemoWeb.ArtistLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, rates: @rates)}
+    {:ok,
+     socket
+     |> assign(rates: @rates)
+     |> assign(:movie_loader, &movie_loader/1)}
   end
 
   @impl true
@@ -45,7 +48,11 @@ defmodule DemoWeb.ArtistLive do
     <.simple_form for={@form} class="w-full" phx-change="validate" phx-submit="save">
       <.input field={@form[:name]} label="Name" />
       <.search_select options={@rates} field={@form[:rate]} />
-      <.search_select field={@form[:favorite_movies]} option_label={:title} />
+      <.search_select
+        option_label={:title}
+        load_options={@movie_loader}
+        field={@form[:favorite_movies]}
+      />
       <:actions>
         <.button>Save</.button>
       </:actions>
@@ -62,19 +69,7 @@ defmodule DemoWeb.ArtistLive do
   @impl true
   def handle_event("search", %{"field" => "favorite_movies"} = params, socket) do
     %{"search_text" => text, "id" => id} = params
-
-    jitter = Enum.random(1..100) / 100
-
-    :timer.sleep((1500 * jitter) |> ceil())
-
-    options =
-      Movie
-      |> where([m], ilike(m.title, ^"%#{text}%"))
-      |> select([m], {m.title, m.id})
-      |> Repo.all()
-
-    SearchSelect.update_options(id, options)
-
+    SearchSelect.update_options(id, movie_loader(text))
     {:noreply, socket}
   end
 
@@ -90,6 +85,17 @@ defmodule DemoWeb.ArtistLive do
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset))}
     end
+  end
+
+  defp movie_loader(text) do
+    jitter = Enum.random(1..100) / 100
+
+    :timer.sleep((1500 * jitter) |> ceil())
+
+    Movie
+    |> where([m], ilike(m.title, ^"%#{text}%"))
+    |> select([m], {m.title, m.id})
+    |> Repo.all()
   end
 
   @required_fields [:name, :rate]
